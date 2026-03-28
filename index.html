@@ -3,22 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Dream Puzzle: Advanced Edition</title>
+    <title>S.K | Dream Puzzle</title>
     <style>
-        /* 1. LAYOUT & BACKGROUND */
-        body { 
+        /* 1. LAYOUT & SCROLL LOCK */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden; /* Locks scroll on laptop/mobile */
+            position: fixed;  /* Prevents bounce/wobble */
+            touch-action: none; /* Stops zooming gestures */
             background: #1a1a1a;
-            background-image: url('images/wood.png'); /* Local Background */
-            background-size: cover;
-            background-attachment: fixed;
             color: white; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0; padding: 10px; 
-            display: flex; flex-direction: column; align-items: center;
-            min-height: 100vh; overflow-x: hidden;
+        }
+
+        body { 
+            background-image: url('images/wood.png');
+            background-size: cover;
+            background-position: center;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
         }
         
-        /* Dark overlay to make text readable on any wood texture */
+        /* Dark overlay */
         body::before { 
             content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.6); z-index: -1; 
@@ -40,7 +52,7 @@
         .level-card.locked { opacity: 0.4; filter: grayscale(1); cursor: not-allowed; }
 
         /* 3. STATS & HEADER */
-        .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; margin-bottom: 10px; z-index: 5; }
         .stats-box { 
             background: rgba(30, 41, 59, 0.8); padding: 8px; border-radius: 10px; 
             text-align: center; min-width: 80px; border: 1px solid #444; 
@@ -50,14 +62,13 @@
         /* 4. THE GAME BOARD */
         #board { 
             display: grid; position: relative; gap: 4px; 
-            width: 90vw; max-width: 400px; aspect-ratio: 1/1; 
+            width: 85vw; max-width: 400px; aspect-ratio: 1/1; 
             background: rgba(0,0,0,0.3); padding: 8px; border-radius: 12px; border: 4px solid #334155; 
         }
 
         /* 5. TILES & ANIMATIONS */
         .tile { 
             width: 100%; height: 100%; border-radius: 4px; cursor: pointer; 
-            /* This line creates the "Slide" effect */
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s; 
             background-color: #334155;
         }
@@ -65,7 +76,7 @@
         .correct-spot { box-shadow: inset 0 0 10px rgba(52, 211, 153, 0.8); border: 1px solid #34d399; }
 
         /* 6. BUTTONS & CONTROLS */
-        .controls { margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .controls { margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; z-index: 5; }
         button, select { 
             background: #334155; border: none; padding: 10px 15px; border-radius: 8px; 
             color: white; font-weight: bold; cursor: pointer; font-family: inherit;
@@ -110,7 +121,6 @@
     </div>
 
     <script>
-        // --- 1. CONFIGURATION ---
         const levels = [
             'images/dream1.png',
             'images/dream2.png',
@@ -133,7 +143,6 @@
         let isWon = false;
         let unlockedLevel = parseInt(localStorage.getItem('dreamPuzzleUnlocked')) || 0;
 
-        // --- 2. MENU LOGIC ---
         function initMenu() {
             const grid = document.getElementById('level-grid');
             grid.innerHTML = '';
@@ -149,7 +158,6 @@
             });
         }
 
-        // --- 3. GAMEPLAY LOGIC ---
         function setDifficulty(val) {
             gridSize = parseInt(val);
             startLevel();
@@ -167,7 +175,6 @@
             nextBtn.style.display = 'none';
             winBanner.style.visibility = 'hidden';
 
-            // Shuffle Logic
             const total = gridSize * gridSize;
             let pieces = Array.from({length: total}, (_, i) => i).sort(() => Math.random() - 0.5);
 
@@ -176,7 +183,6 @@
                 tile.className = 'tile';
                 tile.style.backgroundImage = `url('${levels[currentLevel]}')`;
                 tile.style.backgroundSize = `${gridSize * 100}% ${gridSize * 100}%`;
-                
                 updateTile(tile, idx);
                 
                 tile.onclick = () => {
@@ -196,6 +202,9 @@
         }
 
         function swapTiles(t1, t2) {
+            // Mobile vibration feedback
+            if (navigator.vibrate) navigator.vibrate(15);
+
             let tempIdx = t1.dataset.idx;
             updateTile(t1, t2.dataset.idx);
             updateTile(t2, tempIdx);
@@ -214,7 +223,6 @@
             const y = Math.floor(i / gridSize) * p;
             el.style.backgroundPosition = `${x}% ${y}%`;
             
-            // Wait for animation to finish before checking "correct-spot"
             setTimeout(() => {
                 const all = Array.from(board.children);
                 if(parseInt(el.dataset.idx) === all.indexOf(el)) {
@@ -238,7 +246,6 @@
                     unlockedLevel++;
                     localStorage.setItem('dreamPuzzleUnlocked', unlockedLevel);
                 }
-
                 calculateScore();
                 if (currentLevel < levels.length - 1) nextBtn.style.display = 'block';
             }
@@ -248,8 +255,7 @@
             let levelScore = Math.max(100, (gridSize * 250) - (moves * 10));
             totalScore += levelScore;
             scoreNum.innerText = totalScore;
-            if (moves < (gridSize * gridSize)) document.getElementById('rank-text').innerText = "Rank: Divine Visionary ⚡";
-            else document.getElementById('rank-text').innerText = "Rank: Dreamer 🌙";
+            document.getElementById('rank-text').innerText = moves < (gridSize * gridSize * 1.5) ? "Rank: Divine Visionary ⚡" : "Rank: Dreamer 🌙";
         }
 
         function goHome() { initMenu(); }
@@ -261,7 +267,6 @@
             }
         }
 
-        // Launch
         initMenu();
     </script>
 </body>
