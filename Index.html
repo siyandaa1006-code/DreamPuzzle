@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dream Puzzle: Advanced Edition</title>
+    <style>
+        /* 1. LAYOUT & BACKGROUND */
+        body { 
+            background: #1a1a1a;
+            background-image: url('images/wood.png'); /* Local Background */
+            background-size: cover;
+            background-attachment: fixed;
+            color: white; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; padding: 10px; 
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; overflow-x: hidden;
+        }
+        
+        /* Dark overlay to make text readable on any wood texture */
+        body::before { 
+            content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.6); z-index: -1; 
+        }
+
+        /* 2. LEVEL MENU */
+        #level-menu { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #0f172a; z-index: 100; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+        }
+        .level-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px; }
+        .level-card { 
+            width: 120px; height: 120px; background: #1e293b; border-radius: 12px; 
+            cursor: pointer; border: 2px solid #334155; overflow: hidden; transition: 0.2s;
+        }
+        .level-card:active { transform: scale(0.95); }
+        .level-card img { width: 100%; height: 100%; object-fit: cover; }
+        .level-card.locked { opacity: 0.4; filter: grayscale(1); cursor: not-allowed; }
+
+        /* 3. STATS & HEADER */
+        .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .stats-box { 
+            background: rgba(30, 41, 59, 0.8); padding: 8px; border-radius: 10px; 
+            text-align: center; min-width: 80px; border: 1px solid #444; 
+        }
+        .value { font-weight: bold; color: #38bdf8; font-size: 18px; display: block; }
+
+        /* 4. THE GAME BOARD */
+        #board { 
+            display: grid; position: relative; gap: 4px; 
+            width: 90vw; max-width: 400px; aspect-ratio: 1/1; 
+            background: rgba(0,0,0,0.3); padding: 8px; border-radius: 12px; border: 4px solid #334155; 
+        }
+
+        /* 5. TILES & ANIMATIONS */
+        .tile { 
+            width: 100%; height: 100%; border-radius: 4px; cursor: pointer; 
+            /* This line creates the "Slide" effect */
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s; 
+            background-color: #334155;
+        }
+        .selected { transform: scale(0.9) !important; z-index: 10 !important; border: 3px solid #fff; box-shadow: 0 0 20px #38bdf8; }
+        .correct-spot { box-shadow: inset 0 0 10px rgba(52, 211, 153, 0.8); border: 1px solid #34d399; }
+
+        /* 6. BUTTONS & CONTROLS */
+        .controls { margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+        button, select { 
+            background: #334155; border: none; padding: 10px 15px; border-radius: 8px; 
+            color: white; font-weight: bold; cursor: pointer; font-family: inherit;
+        }
+        #next-btn { background: #059669; display: none; }
+        #win-banner { 
+            text-align: center; visibility: hidden; background: #065f46; 
+            padding: 10px; border-radius: 8px; width: 90vw; max-width: 380px; margin-top: 10px; 
+        }
+    </style>
+</head>
+<body>
+
+    <div id="level-menu">
+        <h1 style="color: #38bdf8; letter-spacing: 2px;">DREAM PUZZLE</h1>
+        <div id="level-grid" class="level-grid"></div>
+        <button onclick="resetProgress()" style="margin-top: 30px; font-size: 10px; opacity: 0.5;">Reset Save Data</button>
+    </div>
+
+    <div class="header">
+        <div class="stats-box"><span>Dream</span><span id="lvl-num" class="value">1</span></div>
+        <div class="stats-box"><span>Score</span><span id="score-num" class="value">0</span></div>
+        <div class="stats-box"><span>Moves</span><span id="move-num" class="value">0</span></div>
+    </div>
+
+    <div id="board"></div>
+
+    <div id="win-banner">
+        <div style="font-weight: bold; font-size: 18px;">✨ VISION REVEALED ✨</div>
+        <div id="rank-text" style="font-size: 12px; color: #34d399;">Rank: Master</div>
+    </div>
+
+    <div class="controls">
+        <select id="diff-select" onchange="setDifficulty(this.value)">
+            <option value="3">Easy (3x3)</option>
+            <option value="4" selected>Medium (4x4)</option>
+            <option value="5">Hard (5x5)</option>
+        </select>
+        <button onclick="goHome()">🏠 Menu</button>
+        <button onclick="startLevel()">🔄 Restart</button>
+        <button id="next-btn" onclick="nextLevel()">Next Dream ➡️</button>
+    </div>
+
+    <script>
+        // --- 1. CONFIGURATION ---
+        const levels = [
+            'images/dream1.png',
+            'images/dream2.png',
+            'images/dream3.png',
+            'images/dream4.png'
+        ];
+
+        const board = document.getElementById('board');
+        const moveNum = document.getElementById('move-num');
+        const scoreNum = document.getElementById('score-num');
+        const lvlNum = document.getElementById('lvl-num');
+        const nextBtn = document.getElementById('next-btn');
+        const winBanner = document.getElementById('win-banner');
+
+        let currentLevel = 0;
+        let gridSize = 4;
+        let moves = 0;
+        let totalScore = 0;
+        let firstTile = null;
+        let isWon = false;
+        let unlockedLevel = parseInt(localStorage.getItem('dreamPuzzleUnlocked')) || 0;
+
+        // --- 2. MENU LOGIC ---
+        function initMenu() {
+            const grid = document.getElementById('level-grid');
+            grid.innerHTML = '';
+            document.getElementById('level-menu').style.display = 'flex';
+            levels.forEach((img, index) => {
+                const card = document.createElement('div');
+                card.className = `level-card ${index > unlockedLevel ? 'locked' : ''}`;
+                card.innerHTML = `<img src="${img}">`;
+                if (index <= unlockedLevel) {
+                    card.onclick = () => { currentLevel = index; startLevel(); };
+                }
+                grid.appendChild(card);
+            });
+        }
+
+        // --- 3. GAMEPLAY LOGIC ---
+        function setDifficulty(val) {
+            gridSize = parseInt(val);
+            startLevel();
+        }
+
+        function startLevel() {
+            document.getElementById('level-menu').style.display = 'none';
+            board.innerHTML = '';
+            board.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            
+            moves = 0;
+            isWon = false;
+            moveNum.innerText = moves;
+            lvlNum.innerText = currentLevel + 1;
+            nextBtn.style.display = 'none';
+            winBanner.style.visibility = 'hidden';
+
+            // Shuffle Logic
+            const total = gridSize * gridSize;
+            let pieces = Array.from({length: total}, (_, i) => i).sort(() => Math.random() - 0.5);
+
+            pieces.forEach(idx => {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.style.backgroundImage = `url('${levels[currentLevel]}')`;
+                tile.style.backgroundSize = `${gridSize * 100}% ${gridSize * 100}%`;
+                
+                updateTile(tile, idx);
+                
+                tile.onclick = () => {
+                    if (isWon) return;
+                    if (!firstTile) {
+                        firstTile = tile;
+                        tile.classList.add('selected');
+                    } else if (firstTile === tile) {
+                        tile.classList.remove('selected');
+                        firstTile = null;
+                    } else {
+                        swapTiles(firstTile, tile);
+                    }
+                };
+                board.appendChild(tile);
+            });
+        }
+
+        function swapTiles(t1, t2) {
+            let tempIdx = t1.dataset.idx;
+            updateTile(t1, t2.dataset.idx);
+            updateTile(t2, tempIdx);
+
+            t1.classList.remove('selected');
+            firstTile = null;
+            moves++;
+            moveNum.innerText = moves;
+            checkWin();
+        }
+
+        function updateTile(el, i) {
+            el.dataset.idx = i;
+            const p = 100 / (gridSize - 1);
+            const x = (i % gridSize) * p;
+            const y = Math.floor(i / gridSize) * p;
+            el.style.backgroundPosition = `${x}% ${y}%`;
+            
+            // Wait for animation to finish before checking "correct-spot"
+            setTimeout(() => {
+                const all = Array.from(board.children);
+                if(parseInt(el.dataset.idx) === all.indexOf(el)) {
+                    el.classList.add('correct-spot');
+                } else {
+                    el.classList.remove('correct-spot');
+                }
+            }, 410);
+        }
+
+        function checkWin() {
+            const tiles = document.querySelectorAll('.tile');
+            let correct = 0;
+            tiles.forEach((t, i) => { if(parseInt(t.dataset.idx) === i) correct++; });
+            
+            if (correct === gridSize * gridSize) {
+                isWon = true;
+                winBanner.style.visibility = 'visible';
+                
+                if (currentLevel === unlockedLevel && unlockedLevel < levels.length - 1) {
+                    unlockedLevel++;
+                    localStorage.setItem('dreamPuzzleUnlocked', unlockedLevel);
+                }
+
+                calculateScore();
+                if (currentLevel < levels.length - 1) nextBtn.style.display = 'block';
+            }
+        }
+
+        function calculateScore() {
+            let levelScore = Math.max(100, (gridSize * 250) - (moves * 10));
+            totalScore += levelScore;
+            scoreNum.innerText = totalScore;
+            if (moves < (gridSize * gridSize)) document.getElementById('rank-text').innerText = "Rank: Divine Visionary ⚡";
+            else document.getElementById('rank-text').innerText = "Rank: Dreamer 🌙";
+        }
+
+        function goHome() { initMenu(); }
+        function nextLevel() { currentLevel++; startLevel(); }
+        function resetProgress() {
+            if(confirm("Erase all progress?")) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        // Launch
+        initMenu();
+    </script>
+</body>
+</html>
