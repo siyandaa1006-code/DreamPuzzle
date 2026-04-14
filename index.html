@@ -8,7 +8,8 @@
         :root {
             --primary: #38bdf8;
             --success: #34d399;
-            --bg-dark: rgba(15, 23, 42, 0.8);
+            --accent: #fbbf24;
+            --bg-dark: rgba(15, 23, 42, 0.9);
             --glass: rgba(30, 41, 59, 0.7);
         }
 
@@ -31,109 +32,97 @@
             z-index: -1;
         }
 
-        /* Level Select Screen */
-        #level-menu {
+        /* --- UI OVERLAYS --- */
+        #level-menu, #ad-container {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-dark); z-index: 100; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; backdrop-filter: blur(10px);
+            z-index: 100; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; backdrop-filter: blur(12px);
         }
 
-        .level-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 20px;
-        }
+        #level-menu { background: var(--bg-dark); }
+        #ad-container { background: black; z-index: 200; display: none; }
 
+        .ad-box { padding: 30px; border-radius: 20px; background: #0f172a; text-align: center; border: 1px solid #334155; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #334155; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin: 15px auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- LEVEL GRID --- */
+        .level-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px; }
         .level-card {
-            width: 140px; height: 140px; background: #1e293b; border-radius: 16px;
+            width: 130px; height: 130px; background: #1e293b; border-radius: 16px;
             display: flex; align-items: center; justify-content: center;
             cursor: pointer; position: relative; overflow: hidden; border: 2px solid #334155;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        .level-card:hover:not(.locked) { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+        .level-card:hover:not(.locked) { transform: translateY(-5px); border-color: var(--primary); }
         .level-card.locked { opacity: 0.5; filter: grayscale(1); cursor: not-allowed; }
-        .level-card img { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
-        .lock-icon { position: absolute; font-size: 32px; z-index: 2; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .level-card img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Stats & UI */
-        .header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; gap: 10px; margin-bottom: 15px; }
-        .stats-box { 
-            background: var(--glass); padding: 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); 
-            text-align: center; flex: 1; backdrop-filter: blur(4px);
-        }
-        .label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
-        .value { font-weight: 800; color: var(--primary); font-size: 20px; }
+        /* --- GAME BOARD --- */
+        .header { width: 100%; max-width: 400px; display: flex; gap: 8px; margin-bottom: 15px; }
+        .stats-box { background: var(--glass); padding: 10px; border-radius: 12px; flex: 1; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .label { font-size: 10px; color: #94a3b8; text-transform: uppercase; display: block; }
+        .value { font-weight: 800; color: var(--primary); font-size: 18px; }
 
-        /* Game Board */
-        #board-container { position: relative; width: 90vw; max-width: 400px; aspect-ratio: 1/1; }
-        
         #board { 
-            display: grid; gap: 4px; width: 100%; height: 100%;
+            display: grid; gap: 4px; width: 90vw; max-width: 400px; aspect-ratio: 1/1;
             background: var(--glass); padding: 8px; border-radius: 16px; border: 2px solid rgba(255,255,255,0.1);
-            box-sizing: border-box; transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.5s ease;
         }
-
-        #board.won { gap: 0; padding: 0; border-color: var(--success); transform: scale(1.02); }
+        #board.won { gap: 0; padding: 0; border-color: var(--success); }
 
         .tile { 
-            width: 100%; height: 100%; border-radius: 8px; cursor: pointer; 
-            transition: transform 0.2s, box-shadow 0.2s, border-radius 0.5s;
-            position: relative; overflow: hidden;
-            background-repeat: no-repeat;
+            width: 100%; height: 100%; border-radius: 6px; cursor: pointer; 
+            transition: transform 0.2s, box-shadow 0.2s; background-repeat: no-repeat;
+            position: relative;
         }
+        .tile.correct-spot::after { content: "✓"; position: absolute; top: 2px; right: 4px; color: var(--success); font-size: 10px; font-weight: bold; opacity: 0.7; }
+        .selected { transform: scale(0.9); z-index: 10; box-shadow: 0 0 20px var(--primary); border: 2px solid white; }
 
-        .tile::after {
-            content: ""; position: absolute; inset: 0; 
-            background: rgba(255,255,255,0); transition: 0.3s;
-        }
-
-        /* Indicator for correct spot */
-        .tile.correct-spot { border: 2px solid rgba(52, 211, 153, 0.4); }
-        .tile.correct-spot::after { background: rgba(52, 211, 153, 0.1); }
-
-        .selected { transform: scale(0.9) rotate(2deg); z-index: 10; box-shadow: 0 0 25px var(--primary); border: 3px solid white; }
-
-        /* Controls */
-        .controls { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        /* --- CONTROLS --- */
+        .controls { margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
         button, select { 
-            background: #334155; border: 1px solid rgba(255,255,255,0.1); padding: 12px 18px; border-radius: 10px; 
-            color: white; font-weight: 600; cursor: pointer; transition: 0.2s;
+            background: #334155; border: 1px solid rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 10px; 
+            color: white; font-weight: 600; cursor: pointer;
         }
-        button:active { transform: scale(0.95); }
-        #peek-btn { background: #6366f1; }
-        #next-btn { background: var(--success); display: none; animation: bounce 2s infinite; }
-        
-        @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-10px);} 60% {transform: translateY(-5px);} }
+        #ad-btn { background: var(--accent); color: #000; }
+        #next-btn { background: var(--success); display: none; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
         #win-banner { 
             text-align: center; margin: 15px 0; display: none;
-            background: linear-gradient(to right, #065f46, #047857); 
-            padding: 15px; border-radius: 12px; width: 90vw; max-width: 380px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            background: #065f46; padding: 12px; border-radius: 12px; width: 90vw; max-width: 380px;
         }
     </style>
 </head>
 <body>
 
+    <div id="ad-container">
+        <div class="ad-box">
+            <div class="spinner"></div>
+            <h2 style="color: var(--primary); margin: 0;">Dream Sponsor</h2>
+            <p id="ad-timer-text" style="color: #94a3b8;">Focusing vision in 5s...</p>
+        </div>
+    </div>
+
     <div id="level-menu">
-        <h1 style="color: var(--primary); margin-bottom: 5px; font-size: 32px; letter-spacing: 4px; font-weight: 900;">DREAM PUZZLE</h1>
-        <p style="color: #94a3b8; margin-bottom: 30px; font-style: italic;">"The architect of your own reality"</p>
+        <h1 style="color: var(--primary); letter-spacing: 4px; font-weight: 900; margin-bottom: 5px;">DREAM PUZZLE</h1>
+        <p style="color: #94a3b8; margin-bottom: 25px;">Choose your vision</p>
         <div id="level-grid" class="level-grid"></div>
-        <button onclick="resetProgress()" style="margin-top: 40px; font-size: 11px; opacity: 0.4; background: transparent;">Factory Reset Dreams</button>
+        <button onclick="resetProgress()" style="margin-top: 40px; font-size: 10px; opacity: 0.4;">Reset All Progress</button>
     </div>
 
     <div class="header">
-        <div class="stats-box"><span class="label">Dream</span><span id="lvl-num" class="value">1</span></div>
+        <div class="stats-box"><span class="label">Vision</span><span id="lvl-num" class="value">1</span></div>
         <div class="stats-box"><span class="label">Time</span><span id="time-num" class="value">00:00</span></div>
         <div class="stats-box"><span class="label">Moves</span><span id="move-num" class="value">0</span></div>
     </div>
 
-    <div id="board-container">
-        <div id="board"></div>
-    </div>
+    <div id="board"></div>
 
     <div id="win-banner">
-        <div style="font-size: 20px; font-weight: 900; letter-spacing: 1px;">✨ VISION REVEALED ✨</div>
-        <div id="rank-text" style="font-size: 14px; color: #a7f3d0; margin-top: 5px;">Rank: Master</div>
+        <div style="font-weight: 900;">✨ VISION REVEALED ✨</div>
+        <div id="rank-text" style="font-size: 12px; color: #a7f3d0;">Rank: Master</div>
     </div>
 
     <div class="controls">
@@ -142,21 +131,13 @@
             <option value="4" selected>Medium (4x4)</option>
             <option value="5">Hard (5x5)</option>
         </select>
-        <button id="peek-btn" onmousedown="showHint(true)" onmouseup="showHint(false)" ontouchstart="showHint(true)" ontouchend="showHint(false)">👁️ Peek</button>
+        <button id="ad-btn" onclick="startAdSequence()">📺 Watch Ad for Peek</button>
         <button onclick="goHome()">🏠 Menu</button>
         <button onclick="startLevel()">🔄 Restart</button>
         <button id="next-btn" onclick="nextLevel()">Next Dream ➡️</button>
     </div>
 
     <script>
-        const board = document.getElementById('board');
-        const lvlNum = document.getElementById('lvl-num');
-        const moveNum = document.getElementById('move-num');
-        const timeNum = document.getElementById('time-num');
-        const nextBtn = document.getElementById('next-btn');
-        const winBanner = document.getElementById('win-banner');
-        const rankText = document.getElementById('rank-text');
-
         const levels = [
             'https://i.postimg.cc/G2QZ2m2J/dream.png',
             'https://i.postimg.cc/jjvgCG5b/Dream-2.png',
@@ -164,74 +145,58 @@
             'https://i.postimg.cc/FKR0dDGy/dream4.png'
         ];
 
-        let currentLevel = 0;
-        let gridSize = 4;
-        let moves = 0;
-        let timer = 0;
-        let timerInterval;
-        let firstTile = null;
-        let isWon = false;
+        let currentLevel = 0, gridSize = 4, moves = 0, timer = 0, timerInterval;
+        let firstTile = null, isWon = false, isActionLocked = false;
         let unlockedLevel = parseInt(localStorage.getItem('dreamPuzzleUnlocked')) || 0;
+
+        const board = document.getElementById('board');
+        const moveNum = document.getElementById('move-num');
+        const timeNum = document.getElementById('time-num');
+        const nextBtn = document.getElementById('next-btn');
 
         function initMenu() {
             const grid = document.getElementById('level-grid');
             grid.innerHTML = '';
             document.getElementById('level-menu').style.display = 'flex';
-            levels.forEach((img, index) => {
+            levels.forEach((img, i) => {
                 const card = document.createElement('div');
-                card.className = `level-card ${index > unlockedLevel ? 'locked' : ''}`;
-                if (index <= unlockedLevel) {
-                    card.innerHTML = `<img src="${img}"><span style="position:absolute; bottom:10px; background:rgba(0,0,0,0.7); padding:4px 10px; border-radius:20px; font-size:10px;">DREAM ${index+1}</span>`;
-                    card.onclick = () => { currentLevel = index; startLevel(); };
-                } else {
-                    card.innerHTML = `<span class="lock-icon">🔒</span><img src="${img}" style="filter: blur(10px)">`;
-                }
+                card.className = `level-card ${i > unlockedLevel ? 'locked' : ''}`;
+                card.innerHTML = i <= unlockedLevel ? `<img src="${img}">` : `<span style="font-size:30px">🔒</span>`;
+                card.onclick = () => { if(i <= unlockedLevel) { currentLevel = i; startLevel(); } };
                 grid.appendChild(card);
             });
         }
 
-        function startTimer() {
+        function startLevel() {
+            document.getElementById('level-menu').style.display = 'none';
+            board.innerHTML = ''; board.classList.remove('won');
+            board.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+            
+            moves = 0; isWon = false; isActionLocked = false;
+            moveNum.innerText = moves;
+            document.getElementById('lvl-num').innerText = currentLevel + 1;
+            document.getElementById('win-banner').style.display = 'none';
+            nextBtn.style.display = 'none';
+
+            // Timer reset
             clearInterval(timerInterval);
             timer = 0;
             timerInterval = setInterval(() => {
                 timer++;
-                const mins = Math.floor(timer / 60).toString().padStart(2, '0');
-                const secs = (timer % 60).toString().padStart(2, '0');
-                timeNum.innerText = `${mins}:${secs}`;
+                const m = Math.floor(timer/60).toString().padStart(2,'0');
+                const s = (timer%60).toString().padStart(2,'0');
+                timeNum.innerText = `${m}:${s}`;
             }, 1000);
-        }
 
-        function setDifficulty(val) {
-            gridSize = parseInt(val);
-            startLevel();
-        }
-
-        function startLevel() {
-            document.getElementById('level-menu').style.display = 'none';
-            board.innerHTML = '';
-            board.classList.remove('won');
-            board.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
-            
-            moves = 0;
-            isWon = false;
-            moveNum.innerText = moves;
-            lvlNum.innerText = currentLevel + 1;
-            nextBtn.style.display = 'none';
-            winBanner.style.display = 'none';
-
-            startTimer();
-
-            const totalTiles = gridSize * gridSize;
-            let pieces = Array.from({length: totalTiles}, (_, i) => i).sort(() => Math.random() - 0.5);
+            const total = gridSize * gridSize;
+            let pieces = Array.from({length: total}, (_, i) => i).sort(() => Math.random() - 0.5);
 
             pieces.forEach(idx => {
                 const tile = document.createElement('div');
                 tile.className = 'tile';
                 tile.style.backgroundImage = `url('${levels[currentLevel]}')`;
                 tile.style.backgroundSize = `${gridSize * 100}% ${gridSize * 100}%`;
-                
                 updateTileVisuals(tile, idx);
-
                 tile.addEventListener('pointerdown', () => handleTileClick(tile));
                 board.appendChild(tile);
             });
@@ -239,23 +204,18 @@
         }
 
         function handleTileClick(tile) {
-            if (isWon) return;
+            if (isWon || isActionLocked) return;
             if (!firstTile) {
-                firstTile = tile;
-                tile.classList.add('selected');
+                firstTile = tile; tile.classList.add('selected');
             } else if (firstTile === tile) {
-                tile.classList.remove('selected');
-                firstTile = null;
+                tile.classList.remove('selected'); firstTile = null;
             } else {
-                // Swap logic
-                const tempIdx = tile.dataset.idx;
+                let tIdx = tile.dataset.idx;
                 updateTileVisuals(tile, firstTile.dataset.idx);
-                updateTileVisuals(firstTile, tempIdx);
-                
+                updateTileVisuals(firstTile, tIdx);
                 firstTile.classList.remove('selected');
                 firstTile = null;
-                moves++;
-                moveNum.innerText = moves;
+                moves++; moveNum.innerText = moves;
                 checkCorrectness();
                 checkWin();
             }
@@ -263,69 +223,72 @@
 
         function updateTileVisuals(el, i) {
             el.dataset.idx = i;
-            const percent = 100 / (gridSize - 1);
-            const x = (i % gridSize) * percent;
-            const y = Math.floor(i / gridSize) * percent;
-            el.style.backgroundPosition = `${x}% ${y}%`;
+            const p = 100 / (gridSize - 1);
+            el.style.backgroundPosition = `${(i % gridSize) * p}% ${Math.floor(i / gridSize) * p}%`;
         }
 
         function checkCorrectness() {
-            const tiles = Array.from(board.children);
-            tiles.forEach((tile, index) => {
-                if (parseInt(tile.dataset.idx) === index) {
-                    tile.classList.add('correct-spot');
-                } else {
-                    tile.classList.remove('correct-spot');
-                }
+            Array.from(board.children).forEach((t, i) => {
+                t.classList.toggle('correct-spot', parseInt(t.dataset.idx) === i);
             });
         }
 
-        function showHint(show) {
-            const tiles = document.querySelectorAll('.tile');
-            tiles.forEach((t, i) => {
-                t.style.backgroundImage = show ? `none` : `url('${levels[currentLevel]}')`;
+        function startAdSequence() {
+            if (isActionLocked || isWon) return;
+            isActionLocked = true;
+            const adScreen = document.getElementById('ad-container');
+            const adText = document.getElementById('ad-timer-text');
+            let timeLeft = 5;
+            adScreen.style.display = 'flex';
+
+            const itv = setInterval(() => {
+                timeLeft--;
+                adText.innerText = `Focusing vision in ${timeLeft}s...`;
+                if (timeLeft <= 0) {
+                    clearInterval(itv);
+                    adScreen.style.display = 'none';
+                    triggerTimedPeek();
+                }
+            }, 1000);
+        }
+
+        function triggerTimedPeek() {
+            toggleVisualAid(true);
+            const btn = document.getElementById('ad-btn');
+            btn.disabled = true; btn.innerText = "⏳ PEERING...";
+
+            setTimeout(() => {
+                toggleVisualAid(false);
+                isActionLocked = false;
+                btn.disabled = false; btn.innerText = "📺 Watch Ad for Peek";
+            }, 3000);
+        }
+
+        function toggleVisualAid(show) {
+            Array.from(board.children).forEach(t => {
+                t.style.backgroundImage = show ? 'none' : `url('${levels[currentLevel]}')`;
                 t.style.backgroundColor = show ? '#1e293b' : 'transparent';
-                t.innerHTML = show ? `<div style="display:flex; justify-content:center; align-items:center; height:100%; font-weight:bold; color:var(--primary)">${parseInt(t.dataset.idx) + 1}</div>` : '';
+                t.innerHTML = show ? `<div style="display:flex;justify-content:center;align-items:center;height:100%;font-weight:900;color:var(--primary);font-size:20px;">${parseInt(t.dataset.idx)+1}</div>` : '';
             });
         }
 
         function checkWin() {
-            const tiles = document.querySelectorAll('.tile');
-            let correct = 0;
-            tiles.forEach((t, i) => { if(parseInt(t.dataset.idx) === i) correct++; });
-            
-            if (correct === gridSize * gridSize) {
-                isWon = true;
-                clearInterval(timerInterval);
+            const match = Array.from(board.children).every((t, i) => parseInt(t.dataset.idx) === i);
+            if (match) {
+                isWon = true; clearInterval(timerInterval);
                 board.classList.add('won');
-                
+                document.getElementById('win-banner').style.display = 'block';
                 if (currentLevel === unlockedLevel && unlockedLevel < levels.length - 1) {
-                    unlockedLevel++;
-                    localStorage.setItem('dreamPuzzleUnlocked', unlockedLevel);
+                    unlockedLevel++; localStorage.setItem('dreamPuzzleUnlocked', unlockedLevel);
                 }
-
-                winBanner.style.display = 'block';
-                calculateRank();
                 if (currentLevel < levels.length - 1) nextBtn.style.display = 'block';
             }
         }
 
-        function calculateRank() {
-            const par = gridSize * gridSize * 3;
-            if (moves < par && timer < 60) rankText.innerText = "Rank: ⚡ Godlike Visionary";
-            else if (moves < par * 1.5) rankText.innerText = "Rank: 🏗️ Master Architect";
-            else rankText.innerText = "Rank: 🌙 Persistent Dreamer";
-        }
-
+        function setDifficulty(v) { gridSize = parseInt(v); startLevel(); }
         function nextLevel() { currentLevel++; startLevel(); }
         function goHome() { clearInterval(timerInterval); initMenu(); }
-        function resetProgress() {
-            if(confirm("This will erase all your journey data. Are you sure?")) {
-                localStorage.removeItem('dreamPuzzleUnlocked');
-                unlockedLevel = 0;
-                initMenu();
-            }
-        }
+        function resetProgress() { if(confirm("Clear dreams?")) { localStorage.clear(); unlockedLevel = 0; initMenu(); } }
 
         initMenu();
     </script>
